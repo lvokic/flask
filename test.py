@@ -123,7 +123,8 @@ class MainWindow:
 
             # 在图像上绘制边界框和标签
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)  # 绘制绿色边界框
-            cv2.putText(img, f"{label}: {confidence:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  # 添加标签
+            cv2.putText(img, f"{label}: {confidence:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),
+                        2)  # 添加标签
 
         # 保存带有检测结果的新图像
         result_image_path = "result_image.jpg"
@@ -133,6 +134,32 @@ class MainWindow:
         cv2.imshow("Detection Result", img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+    def image_with_detections(self, img_path, save_result_path):
+        # 执行目标检测并获取结果
+        detections = self.detect_objects(img_path)
+
+        # 打开图像文件
+        img = cv2.imread(img_path)
+
+        for detection in detections:
+            label = detection['label']
+            confidence = detection['confidence']
+            bbox = detection['bbox']
+
+            # 提取边界框坐标
+            x1, y1, x2, y2 = map(int, bbox)
+
+            # 在图像上绘制边界框和标签
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)  # 绘制绿色边界框
+            cv2.putText(img, f"{label}: {confidence:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),
+                        2)  # 添加标签
+
+        # 保存带有检测结果的新图像到指定路径
+        cv2.imwrite(save_result_path, img)
+
+        # 返回结果图像的保存路径
+        return save_result_path
 
 
 if __name__ == "__main__":
