@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request, send_file
+import cv2
+from flask import Flask, jsonify, request, send_file, Response
 from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
@@ -11,9 +12,53 @@ app.config['DOWNLOAD_FOLDER'] = 'Flask/downloads'  # 替换为你的上传文件
 app.config['UPLOAD_FOLDER'] = 'Flask/uploads'
 app.config['RESULTS_FOLDER'] = 'Flask/results'  # 存储检测结果图像的文件夹路径
 
-
 # 启用跨域支持，允许所有来源访问您的API
 CORS(app, resources={r"/api-flask/*": {"origins": "http://localhost:8080"}}, supports_credentials=True)
+
+frame_number = 0
+save_folder = 'Flask/captured'
+
+
+# 摄像头捕获
+def camera_generator():
+    # 打开摄像头，可以更改摄像头索引或视频文件路径
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # 构造图像文件的路径
+        image_path = os.path.join(save_folder, f'frame_{frame_number}.jpg')
+
+        # 将帧写入磁盘
+        cv2.imwrite(image_path, frame)
+
+        # 执行目标检测
+        detections = main.detect_objects(image_path)  # 调用您的目标检测方法
+
+        # 在图像上绘制检测结果
+        for detection in detections:
+            label = detection['label']
+            confidence = detection['confidence']
+            bbox = detection['bbox']
+
+            x1, y1, x2, y2 = map(int, bbox)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, f"{label}: {confidence:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0),
+                        2)
+
+        # 将图像转换为JPEG格式
+        ret, jpeg = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
+
+        # 将JPEG格式的图像作为生成器的输出
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+
+    cap.release()
 
 
 # 添加一个路由处理OPTIONS请求
@@ -73,6 +118,11 @@ def detect_objects():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+
+# 新增路由用于传输视频流
+@app.route('/api-flask/video_feed', methods=['GET'])
+def video_feed():
+    return Response(camera_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__ == '__main__':
