@@ -237,6 +237,78 @@ class MainWindow:
         # cv2.destroyAllWindows()
         self.stopEvent.clear()
 
+    def detect_camera_results(self):
+        model = self.model
+        output_size = self.output_size
+        imgsz = [640, 640]  # 模型期望的输入尺寸
+        conf_thres = 0.25
+        iou_thres = 0.45
+        max_det = 1000
+        device = self.device
+        classes = None
+        agnostic_nms = False
+        augment = False
+        half = False
+        dnn = False
+
+        # 打开摄像头
+        cap = cv2.VideoCapture(int(self.vid_source) if self.webcam else self.vid_source)
+
+        while not self.stopEvent.is_set():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # 1. 调整图像大小以匹配模型的输入尺寸
+            frame = cv2.resize(frame, tuple(reversed(imgsz)), interpolation=cv2.INTER_LINEAR)
+
+            # 2. 将图像从 BGR 格式转换为 RGB 格式
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # 3. 将图像数据从 numpy 数组转换为 PyTorch 张量，并标准化像素值到 [0, 1]
+            frame = torch.from_numpy(frame / 255.0).float()
+
+            frame = frame.permute(2, 0, 1)  # 将通道维度调整为 [3, H, W]
+            frame = frame.unsqueeze(0)  # 添加批次维度 [1, 3, H, W]
+
+            frame = frame.to(device)
+
+            # 执行目标检测
+            pred = model(frame, augment=augment)
+            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+
+            frame_np = frame[0].permute(1, 2, 0).cpu().numpy()  # 转换为NumPy数组，注意通道维度的顺序
+
+            for i, det in enumerate(pred):
+                seen = 0
+                s = ""
+                if det is not None and len(det):
+                    # 处理检测结果
+                    for *xyxy, conf, cls in reversed(det):
+                        c = int(cls)
+                        label = model.names[c]
+                        confidence = conf.item()
+                        bbox = np.array(xyxy)  # 将xyxy转换为NumPy数组
+                        bbox = [int(coord) for coord in bbox]
+
+                        # 在图像上绘制边界框和标签
+                        x1, y1, x2, y2 = bbox
+                        cv2.rectangle(frame_np, (x1, y1), (x2, y2), (0, 255, 0), 2)  # 绘制绿色边界框
+                        cv2.putText(frame_np, f"{label}: {confidence:.2f}", (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)  # 添加标签
+
+                        seen += 1
+                        s += f"{seen}: {label}, "  # 添加到显示字符串
+
+             # 编码帧为JPEG格式
+            _, jpeg = cv2.imencode('.jpg', frame_np, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            frame_data = jpeg.tobytes()
+
+            yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
+
+        cap.release()
+        self.stopEvent.clear()
 
 if __name__ == "__main__":
     # 创建 MainWindow 实例

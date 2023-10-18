@@ -120,9 +120,13 @@ def detect_objects():
 
 
 # 新增路由用于传输视频流
+# @app.route('/api-flask/video_feed', methods=['GET'])
+# def video_feed():
+#     return Response(camera_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 @app.route('/api-flask/video_feed', methods=['GET'])
 def video_feed():
-    return Response(camera_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(main.detect_camera_results(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__ == '__main__':
