@@ -301,11 +301,18 @@ class MainWindow:
                         s += f"{seen}: {label}, "  # 添加到显示字符串
 
              # 编码帧为JPEG格式
-            _, jpeg = cv2.imencode('.jpg', frame_np, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            # cv2.imshow("Camera Detection", frame_np)
+
+
+            cv2.imshow("Camera Detection", frame_np)
+            _, jpeg = cv2.imencode('.jpg', frame_np)
             frame_data = jpeg.tobytes()
 
-            yield (b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            # yield (b'--frame\r\n'
+            #         b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
 
         cap.release()
         self.stopEvent.clear()
@@ -314,7 +321,7 @@ if __name__ == "__main__":
     # 创建 MainWindow 实例
     main_window = MainWindow()
 
-    main_window.detect_camera()
+    main_window.detect_camera_results()
     # 准备要检测的图像文件
     image_path = "test.jpg"
     save_result_path = "result_image.jpg"

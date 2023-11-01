@@ -24,6 +24,7 @@ def camera_generator():
     # 打开摄像头，可以更改摄像头索引或视频文件路径
     cap = cv2.VideoCapture(0)
 
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -120,13 +121,13 @@ def detect_objects():
 
 
 # 新增路由用于传输视频流
-# @app.route('/api-flask/video_feed', methods=['GET'])
-# def video_feed():
-#     return Response(camera_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
 @app.route('/api-flask/video_feed', methods=['GET'])
 def video_feed():
-    return Response(main.detect_camera_results(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(camera_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# @app.route('/api-flask/video_feed', methods=['GET'])
+# def video_feed():
+#     return Response(main.detect_camera_results(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__ == '__main__':
