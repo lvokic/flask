@@ -25,7 +25,7 @@ from utils.torch_utils import select_device, time_sync
 
 class MainWindow:
     def __init__(self):
-        self.output_size = 480
+        self.output_size = 100
         self.img2predict = ""
         self.device = 'cpu'
         self.vid_source = '0'
@@ -52,7 +52,7 @@ class MainWindow:
         global dataset
         model = self.model
         output_size = self.output_size
-        imgsz = [640, 640]
+        imgsz = [224, 224]
         conf_thres = 0.25
         iou_thres = 0.45
         max_det = 1000
